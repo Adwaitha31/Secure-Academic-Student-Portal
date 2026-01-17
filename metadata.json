@@ -1,0 +1,7 @@
+{
+  "name": "lab 1",
+  "description": "A high-security student portal featuring NIST-compliant authentication (SFA & MFA), role-based access control (RBAC), AES encryption for files, salt-based hashing for passwords, and digital signatures for data integrity.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
