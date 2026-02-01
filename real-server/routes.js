@@ -6,6 +6,7 @@ import {
   generateOTP,
   encryptData,
   decryptData,
+  safeDecrypt,
   generateSignature,
   generateJWT,
   generateSalt
@@ -281,6 +282,7 @@ router.get('/assignments', authenticate, authorize('ASSIGNMENT', 'READ'), async 
     const assignments = await Assignment.find(query).sort({ submittedAt: -1 });
 
     // Decrypt content for response (only if user can read it)
+    // DECRYPT grade and feedback when reading (safeDecrypt handles both old plain text and new encrypted data)
     const assignmentsWithDecrypted = assignments.map(a => ({
       id: a.id,
       studentId: a.studentId,
@@ -289,9 +291,9 @@ router.get('/assignments', authenticate, authorize('ASSIGNMENT', 'READ'), async 
       contentType: a.contentType,
       isBinary: a.isBinary,
       submittedAt: a.submittedAt,
-      grade: a.grade,
+      grade: safeDecrypt(a.grade),
       gradedBy: a.gradedBy,
-      feedback: a.feedback,
+      feedback: safeDecrypt(a.feedback),
       gradedAt: a.gradedAt,
       digitalSignature: a.digitalSignature
     }));
@@ -344,33 +346,54 @@ router.get('/assignments/:assignmentId/download', authenticate, authorize('ASSIG
     const { assignmentId } = req.params;
     const { role } = req.user;
 
+    console.log(`[DOWNLOAD] Attempting download for assignment: ${assignmentId}, role: ${role}`);
+
     if (role !== 'FACULTY' && role !== 'ADMIN') {
       return res.status(403).json({ error: 'Unauthorized to download content' });
     }
 
     const assignment = await Assignment.findOne({ id: assignmentId });
     if (!assignment) {
+      console.log(`[DOWNLOAD] Assignment not found: ${assignmentId}`);
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    const decryptedContent = decryptData(assignment.encryptedContent);
+    console.log(`[DOWNLOAD] Found assignment: ${assignment.filename}, isBinary: ${assignment.isBinary}, contentType: ${assignment.contentType}`);
+
+    if (!assignment.encryptedContent) {
+      console.log(`[DOWNLOAD] No content for assignment: ${assignmentId}`);
+      return res.status(404).json({ error: 'No content found for this assignment' });
+    }
+
+    let decryptedContent;
+    try {
+      decryptedContent = decryptData(assignment.encryptedContent);
+      console.log(`[DOWNLOAD] Decryption successful, content length: ${decryptedContent.length}`);
+    } catch (decryptError) {
+      console.error('[DOWNLOAD] Decryption failed:', decryptError.message);
+      decryptedContent = assignment.encryptedContent;
+    }
 
     const safeName = assignment.filename || 'submission.bin';
     const contentType = assignment.contentType || 'application/octet-stream';
 
     if (assignment.isBinary) {
+      console.log(`[DOWNLOAD] Sending binary file: ${safeName}`);
       const buffer = Buffer.from(decryptedContent, 'base64');
+      console.log(`[DOWNLOAD] Buffer size: ${buffer.length} bytes`);
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+      res.setHeader('Content-Length', buffer.length);
       return res.send(buffer);
     }
 
     // Text content
+    console.log(`[DOWNLOAD] Sending text file: ${safeName}`);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     return res.send(decryptedContent);
   } catch (error) {
-    console.error('Download assignment error:', error);
+    console.error('[DOWNLOAD] Error:', error);
     res.status(500).json({ error: 'Failed to download assignment' });
   }
 });
@@ -391,10 +414,10 @@ router.post('/assignments/:assignmentId/grade', authenticate, authorize('GRADE',
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    // Update assignment
-    assignment.grade = grade;
+    // Update assignment - ENCRYPT grade and feedback for security
+    assignment.grade = encryptData(grade);
     assignment.gradedBy = username;
-    assignment.feedback = feedback || '';
+    assignment.feedback = feedback ? encryptData(feedback) : '';
     assignment.gradedAt = new Date();
 
     await assignment.save();

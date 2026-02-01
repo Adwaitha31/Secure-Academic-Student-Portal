@@ -50,16 +50,30 @@ const FacultyDashboard: React.FC<{ user: User }> = ({ user }) => {
   const handleDownload = async () => {
     if (!selected) return;
     try {
+      console.log('Starting download for:', selected.id);
       const { blob, filename } = await api.assignments.download(selected.id);
+      console.log('Got blob:', blob.size, 'bytes, filename:', filename);
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
-      a.download = filename;
+      a.download = filename || selected.filename || 'download';
+      
+      // Append to body and trigger click
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      
+      // Cleanup after a short delay
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      
+      console.log('Download triggered successfully');
     } catch (err: any) {
+      console.error('Download error:', err);
       alert('Download failed: ' + (err.message || 'Unknown error'));
     }
   };
@@ -104,17 +118,29 @@ const FacultyDashboard: React.FC<{ user: User }> = ({ user }) => {
               <div className="mb-6">
                 <h4 className="font-bold mb-2">Submitted Content:</h4>
                 {selectedIsBinary ? (
-                  <div className="p-4 bg-slate-50 rounded-xl border flex items-center justify-between">
-                    <p className="text-sm text-slate-600">Binary file. Download to review.</p>
-                    <button onClick={handleDownload} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Download</button>
+                  <div className="p-4 bg-slate-50 rounded-xl border">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm text-slate-600">📄 Binary file ({selected.filename})</p>
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Download to view</span>
+                    </div>
+                    <button onClick={handleDownload} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      Download File
+                    </button>
                   </div>
                 ) : (
-                  <div className="p-4 bg-slate-50 rounded-xl border max-h-64 overflow-y-auto">
-                    {decryptedContent ? (
-                      <pre className="text-sm whitespace-pre-wrap font-mono">{decryptedContent}</pre>
-                    ) : (
-                      <p className="text-slate-400">Loading content...</p>
-                    )}
+                  <div className="p-4 bg-slate-50 rounded-xl border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-500">Text Content</span>
+                      <button onClick={handleDownload} className="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-lg font-medium">⬇ Download</button>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {decryptedContent ? (
+                        <pre className="text-sm whitespace-pre-wrap font-mono">{decryptedContent}</pre>
+                      ) : (
+                        <p className="text-slate-400">Loading content...</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

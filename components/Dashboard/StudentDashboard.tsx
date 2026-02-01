@@ -31,16 +31,15 @@ const StudentDashboard: React.FC<{ user: User }> = ({ user }) => {
     setIsBinary(true);
     const reader = new FileReader();
     reader.onload = (event) => {
-      const buffer = event.target?.result;
-      if (buffer instanceof ArrayBuffer) {
-        const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        setFileContent(base64String);
-      } else if (typeof buffer === 'string') {
-        // Fallback
-        setFileContent(buffer);
+      const result = event.target?.result;
+      if (typeof result === 'string') {
+        // Extract base64 from data URL (remove "data:application/pdf;base64," prefix)
+        const base64 = result.split(',')[1] || result;
+        setFileContent(base64);
       }
     };
-    reader.readAsArrayBuffer(file);
+    // Use readAsDataURL for reliable base64 encoding of binary files
+    reader.readAsDataURL(file);
   };
 
   const handleUpload = async (e: React.FormEvent) => {

@@ -123,8 +123,14 @@ export const api = {
         }
       });
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || `Download failed: ${res.status}`);
+        let errorMessage = `Download failed: ${res.status}`;
+        try {
+          const error = await res.json();
+          errorMessage = error.error || errorMessage;
+        } catch (e) {
+          // Response wasn't JSON
+        }
+        throw new Error(errorMessage);
       }
       const blob = await res.blob();
       const disposition = res.headers.get('Content-Disposition') || '';

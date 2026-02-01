@@ -69,6 +69,22 @@ export const decryptData = (encryptedData) => {
   }
 };
 
+// Safe Decrypt - returns original if not encrypted (for backward compatibility)
+export const safeDecrypt = (data) => {
+  if (!data) return null;
+  try {
+    // Check if data looks like encrypted format (contains : and is hex)
+    if (data.includes(':') && /^[a-f0-9]+:[a-f0-9]+$/i.test(data)) {
+      return decryptData(data);
+    }
+    // Return as-is if not encrypted (plain text from old data)
+    return data;
+  } catch (error) {
+    // If decryption fails, return original (might be plain text)
+    return data;
+  }
+};
+
 // Generate Digital Signature (HMAC-SHA256)
 export const generateSignature = (data) => {
   return crypto
