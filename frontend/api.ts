@@ -141,6 +141,100 @@ export const api = {
   },
 
   /**
+   * ASSIGNMENT TASK ENDPOINTS (Faculty creates assignments)
+   */
+  assignmentTasks: {
+    create: async (title: string, description: string, deadline: string, maxMarks?: number) => {
+      return apiRequest('/assignment-tasks', 'POST', { title, description, deadline, maxMarks });
+    },
+
+    getAll: async () => {
+      return apiRequest('/assignment-tasks', 'GET');
+    },
+
+    delete: async (taskId: string) => {
+      return apiRequest(`/assignment-tasks/${taskId}`, 'DELETE');
+    }
+  },
+
+  /**
+   * SUBMISSION ENDPOINTS (Students submit to assignments)
+   */
+  submissions: {
+    submit: async (assignmentTaskId: string, filename: string, content: string, options?: { contentType?: string; isBinary?: boolean }) => {
+      return apiRequest('/submissions', 'POST', {
+        assignmentTaskId,
+        filename,
+        content,
+        contentType: options?.contentType,
+        isBinary: options?.isBinary ?? false
+      });
+    },
+
+    getAll: async (assignmentTaskId?: string) => {
+      const query = assignmentTaskId ? `?assignmentTaskId=${assignmentTaskId}` : '';
+      return apiRequest(`/submissions${query}`, 'GET');
+    },
+
+    download: async (submissionId: string) => {
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/submissions/${submissionId}/download`, {
+        method: 'GET',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      if (!res.ok) {
+        let errorMessage = `Download failed: ${res.status}`;
+        try {
+          const error = await res.json();
+          errorMessage = error.error || errorMessage;
+        } catch (e) {}
+        throw new Error(errorMessage);
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      const filename = match ? match[1] : 'submission';
+      return { blob, filename };
+    },
+
+    grade: async (submissionId: string, grade: string, feedback?: string) => {
+      return apiRequest(`/submissions/${submissionId}/grade`, 'POST', { grade, feedback });
+    }
+  },
+
+  /**
+   * ANNOUNCEMENT ENDPOINTS
+   */
+  announcements: {
+    create: async (title: string, content: string, priority?: string) => {
+      return apiRequest('/announcements', 'POST', { title, content, priority });
+    },
+
+    getAll: async () => {
+      return apiRequest('/announcements', 'GET');
+    },
+
+    delete: async (announcementId: string) => {
+      return apiRequest(`/announcements/${announcementId}`, 'DELETE');
+    }
+  },
+
+  /**
+   * PROFILE ENDPOINTS
+   */
+  profile: {
+    get: async () => {
+      return apiRequest('/profile', 'GET');
+    },
+
+    changePassword: async (currentPassword: string, newPassword: string) => {
+      return apiRequest('/profile/password', 'PUT', { currentPassword, newPassword });
+    }
+  },
+
+  /**
    * DASHBOARD ENDPOINTS
    */
   dashboard: {

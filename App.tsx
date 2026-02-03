@@ -7,9 +7,11 @@ import MFA from './components/Auth/MFA';
 import StudentDashboard from './components/Dashboard/StudentDashboard';
 import FacultyDashboard from './components/Dashboard/FacultyDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
+import ProfileModal from './components/Profile/ProfileModal';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'login' | 'register' | 'mfa' | 'dashboard'>('login');
+  const [showProfile, setShowProfile] = useState(false);
   const [state, setState] = useState<AppState>({
     currentUser: null,
     mfaPending: null,
@@ -77,10 +79,11 @@ const App: React.FC = () => {
               </div>
             </nav>
             <main className="flex-1 container mx-auto p-4 sm:p-8">
-              {state.currentUser.role === UserRole.STUDENT && <StudentDashboard user={state.currentUser} />}
-              {state.currentUser.role === UserRole.FACULTY && <FacultyDashboard user={state.currentUser} />}
+              {state.currentUser.role === UserRole.STUDENT && <StudentDashboard user={state.currentUser} onShowProfile={() => setShowProfile(true)} />}
+              {state.currentUser.role === UserRole.FACULTY && <FacultyDashboard user={state.currentUser} onShowProfile={() => setShowProfile(true)} />}
               {state.currentUser.role === UserRole.ADMIN && <AdminDashboard user={state.currentUser} />}
             </main>
+            {showProfile && state.currentUser && <ProfileModal user={state.currentUser} onClose={() => setShowProfile(false)} />}
           </div>
         );
       default:
