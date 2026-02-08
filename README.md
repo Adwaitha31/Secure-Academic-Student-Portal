@@ -125,25 +125,6 @@ Decrypted only for the intended student
 
 Even faculty or admins cannot view encrypted feedback once stored.
 
-🧪 Demo / Test Login Credentials
-
-⚠️ These credentials are for academic/demo purposes only
-
-👨‍🎓 Students
-Username: adwaitha
-Password: @Dwaitha1234
-
-Username: srividya
-Password: @Srividya123
-
-👩‍🏫 Faculty
-Username: meena
-Password: @Meena123456
-
-🛡️ Admin
-Username: Admin
-Password: @Admin123456
-
 🧠 Security Design Highlights
 
 Role-based access prevents horizontal & vertical privilege escalation
